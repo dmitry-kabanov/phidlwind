@@ -30,46 +30,55 @@ class DivFreeNeuralNetwork:
         # Initialize NNs
         self.weights, self.biases = self.initialize_NN(layers)
 
-        # tf placeholders and graph
-        self.sess = tf.Session(
-            config=tf.ConfigProto(allow_soft_placement=True,
-                                  log_device_placement=True))
+        # TODO: Add Xavier initialization.
+        self.model = keras.models.Sequential([
+            keras.layers.InputLayer(input_shape=(2,)),
+            keras.layers.Dense(20, activation='relu'),
+            keras.layers.Dense(10, activation='relu'),
+            keras.layers.Dense(2)
+        ])
 
-        # Initialize parameters
-        self.lambda_ = tf.Variable([-2.718], dtype=tf.float32)
+        self.model.compile(loss=self._compute_loss,
+                           optimizer='adam')
 
-        self.x_tf = tf.placeholder(tf.float32, shape=[None, self.x.shape[1]])
-        self.y_tf = tf.placeholder(tf.float32, shape=[None, self.y.shape[1]])
-        self.u1_tf = tf.placeholder(tf.float32, shape=[None, self.u1.shape[1]])
-        self.u2_tf = tf.placeholder(tf.float32, shape=[None, self.u2.shape[1]])
+        # self.u1_pred, self.u2_pred = self.net_u(self.x_tf, self.y_tf)
+        # self.f_pred = self.net_constraint(self.x_tf, self.y_tf, self)
 
-        self.u1_pred, self.u2_pred = self.net_u(self.x_tf, self.y_tf)
-        self.f_pred = self.net_constraint(self.x_tf, self.y_tf, self)
+        # self.loss = \
+        #     tf.reduce_mean(tf.square(self.u1_tf - self.u2_pred)) + \
+        #     tf.reduce_mean(tf.square(self.u2_tf - self.u2_pred)) + \
+        #     self.gamma * (tf.reduce_mean(tf.square(self.f_pred)))
 
-        self.loss = \
-            tf.reduce_mean(tf.square(self.u1_tf - self.u2_pred)) + \
-            tf.reduce_mean(tf.square(self.u2_tf - self.u2_pred)) + \
-            self.gamma * (tf.reduce_mean(tf.square(self.f_pred)))
+        # ftol = 1.0 * np.finfo(float).eps
+        # ftol = np.finfo(np.float32).eps
+        # self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
+        #     self.loss,
+        #     method = 'L-BFGS-B',
+        #     options = {'maxiter': 50000,
+        #                'maxfun': 50000,
+        #                'maxcor': 50,
+        #                'maxls': 50,
+        #                'ftol' : ftol})
 
-        ftol = 1.0 * np.finfo(float).eps
-        ftol = np.finfo(np.float32).eps
-        self.optimizer = tf.contrib.opt.ScipyOptimizerInterface(
-            self.loss,
-            method = 'L-BFGS-B',
-            options = {'maxiter': 50000,
-                       'maxfun': 50000,
-                       'maxcor': 50,
-                       'maxls': 50,
-                       'ftol' : ftol})
+        # self.optimizer_Adam = tf.train.AdamOptimizer()
+        # self.train_op_Adam = self.optimizer_Adam.minimize(self.loss)
 
-        self.optimizer_Adam = tf.train.AdamOptimizer()
-        self.train_op_Adam = self.optimizer_Adam.minimize(self.loss)
+    def _compute_loss(self, y_true, y_pred):
+        u1_true = y_true[:, 0]
+        u2_true = y_true[:, 1]
+        u1_pred = y_pred[:, 0]
+        u2_pred = y_pred[:, 1]
+        
+        f = self.net_constraint(u1_pred, u2_pred)
 
-        init = tf.global_variables_initializer()
-        self.sess.run(init)
+        mse1 = tf.reduce_mean(tf.square(u1_true - u1_pred))
+        mse2 = tf.reduce_mean(tf.square(u2_true - u2_pred))
+        pnlt = self.gamma * tf.reduce_mean(tf.square(f))
 
-        # Counter to control the frequency of output in self.callback.
-        self._counter = 0
+        loss = mse1 + mse2 + pnlt
+
+        return loss
+
 
     def initialize_NN(self, layers):
         """Initialize feedforward neural network.
@@ -125,10 +134,14 @@ class DivFreeNeuralNetwork:
         u = self.neural_net(tf.concat([x, y], 1), self.weights, self.biases)
         return u
 
-    def net_constraint(self, x, y, t):
-        u1, u2 = self.net_u(x, y, t)
+    def net_constraint(self, u1, u2):
+        hh1 = self.model.layers[0]
+        input = hh1.input
+        x, y = input[:, 0], input[:, 1]
         du1_dx = tf.gradients(u1, x)[0]
         du2_dy = tf.gradients(u2, y)[0]
+
+        __import__('ipdb').set_trace()
 
         return du1_dx + du2_dy
 
