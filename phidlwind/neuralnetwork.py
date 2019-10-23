@@ -22,8 +22,8 @@ class DivFreeNeuralNetwork:
         self.u1 = u[:, 0:1]
         self.u2 = u[:, 1:2]
 
-        self.lb = np.min(self.x, axis=0), np.min(self.y, axis=0)
-        self.ub = np.max(self.x, axis=0), np.max(self.y, axis=0)
+        self.lb = np.min(self.x), np.min(self.y)
+        self.ub = np.max(self.x), np.max(self.y)
 
         self.layers = layers
 
