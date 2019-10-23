@@ -1,22 +1,29 @@
 import time
+import warnings
+
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 import numpy as np
 import tensorflow as tf
+import tensorflow.keras as keras
 
 
-class PhysicsInformedNN:
-    def __init__(self, X, u, layers, lb, ub, gamma):
-        self.lb = lb
-        self.ub = ub
-
+class DivFreeNeuralNetwork:
+    """Neural network that models divergence-free velocity field."""
+    def __init__(self, X, u, layers, gamma):
+        # Scalar of the penalty term.
         self.gamma = gamma
 
-        # Here and below the following subtle broadcasting rule is used.
-        # Slicing with `0:1` preserves 2D arrays, while slicing with just `0`
-        # would return 1D array.
-        self.x = X[:,0:1]
-        self.t = X[:,1:2]
-        self.u = u
+        # Notice that the following subtle broadcasting rule is used:
+        # slice X[:, 0:1] returns a 2D array, in the opposite to X[:, 0] which
+        # returns a 1D array.
+        self.x = X[:, 0:1]
+        self.y = X[:, 1:2]
+        self.u1 = u[:, 0:1]
+        self.u2 = u[:, 1:2]
+
+        self.lb = np.min(self.x, axis=0), np.min(self.y, axis=0)
+        self.ub = np.max(self.x, axis=0), np.max(self.y, axis=0)
 
         self.layers = layers
 
@@ -26,21 +33,23 @@ class PhysicsInformedNN:
         # tf placeholders and graph
         self.sess = tf.Session(
             config=tf.ConfigProto(allow_soft_placement=True,
-                                  log_device_placement=False))
+                                  log_device_placement=True))
 
         # Initialize parameters
         self.lambda_ = tf.Variable([-2.718], dtype=tf.float32)
 
         self.x_tf = tf.placeholder(tf.float32, shape=[None, self.x.shape[1]])
-        self.t_tf = tf.placeholder(tf.float32, shape=[None, self.t.shape[1]])
-        self.u_tf = tf.placeholder(tf.float32, shape=[None, self.u.shape[1]])
+        self.y_tf = tf.placeholder(tf.float32, shape=[None, self.y.shape[1]])
+        self.u1_tf = tf.placeholder(tf.float32, shape=[None, self.u1.shape[1]])
+        self.u2_tf = tf.placeholder(tf.float32, shape=[None, self.u2.shape[1]])
 
-        self.u_pred = self.net_u(self.x_tf, self.t_tf)
-        self.f_pred = self.net_f(self.x_tf, self.t_tf)
+        self.u1_pred, self.u2_pred = self.net_u(self.x_tf, self.y_tf)
+        self.f_pred = self.net_constraint(self.x_tf, self.y_tf, self)
 
         self.loss = \
-            tf.reduce_mean(tf.square(self.u_tf - self.u_pred)) + \
-            self.gamma * tf.reduce_mean(tf.square(self.f_pred))
+            tf.reduce_mean(tf.square(self.u1_tf - self.u2_pred)) + \
+            tf.reduce_mean(tf.square(self.u2_tf - self.u2_pred)) + \
+            self.gamma * (tf.reduce_mean(tf.square(self.f_pred)))
 
         ftol = 1.0 * np.finfo(float).eps
         ftol = np.finfo(np.float32).eps
@@ -74,6 +83,11 @@ class PhysicsInformedNN:
             of the input and output layers, respectively.
 
         """
+
+        # We require that neural network has two neurons in the output layer
+        # because we work with 2D velocity fields.
+        assert layers[-1] == 2
+
         weights = []
         biases = []
         num_layers = len(layers)
@@ -86,16 +100,17 @@ class PhysicsInformedNN:
         return weights, biases
 
     def xavier_init(self, size):
+        """Initialize using Xavier approach."""
         in_dim = size[0]
         out_dim = size[1]
         xavier_stddev = np.sqrt(2/(in_dim + out_dim))
-        return tf.Variable(
-            tf.truncated_normal([in_dim, out_dim], stddev=xavier_stddev),
-            dtype=tf.float32)
+        sample = tf.random.truncated_normal(size, stddev=xavier_stddev)
+        return tf.Variable(sample, dtype=tf.float32)
 
     def neural_net(self, X, weights, biases):
         num_layers = len(weights) + 1
 
+        __import__('ipdb').set_trace()
         H = 2.0*(X - self.lb)/(self.ub - self.lb) - 1.0
         for l in range(0, num_layers-2):
             W = weights[l]
@@ -106,22 +121,16 @@ class PhysicsInformedNN:
         Y = tf.add(tf.matmul(H, W), b)
         return Y
 
-    def net_u(self, x, t):
-        u = self.neural_net(tf.concat([x, t],1), self.weights, self.biases)
+    def net_u(self, x, y):
+        u = self.neural_net(tf.concat([x, y], 1), self.weights, self.biases)
         return u
 
-    def net_f(self, x, t):
-        D = self.lambda_
-        D = tf.exp(D)
-        u = self.net_u(x,t)
-        u_t = tf.gradients(u, t)[0]
-        u_x = tf.gradients(u, x)[0]
-        u_xx = tf.gradients(u_x, x)[0]
-        s = tf.exp(-t) * (4*np.pi**2 - 1) * tf.sin(2*np.pi*x)
-        #s = tf.exp(-t) * tf.exp(-x**2) - 0.35*2*(2*x**2-1) * tf.exp(-t) * tf.exp(-x**2)
-        f = u_t - D*u_xx - s
+    def net_constraint(self, x, y, t):
+        u1, u2 = self.net_u(x, y, t)
+        du1_dx = tf.gradients(u1, x)[0]
+        du2_dy = tf.gradients(u2, y)[0]
 
-        return f
+        return du1_dx + du2_dy
 
     def callback(self, loss, lambda_):
         if self._counter % 100 == 0:
