@@ -173,10 +173,3 @@ class DivFreeNeuralNetwork:
         f_star = self.sess.run(self.f_pred, tf_dict)
 
         return u_star, f_star
-
-    def get_pde_params(self):
-        """Return PDE parameters as tuple."""
-        D = self.sess.run(self.lambda_)
-        D = np.exp(D)
-
-        return (D,)
