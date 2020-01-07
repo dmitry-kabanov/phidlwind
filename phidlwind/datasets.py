@@ -13,15 +13,20 @@ class Vortex2dDataset:
         self.ub_y = +1.0
 
     def load_data(self):
-        X_star, u_star = self._generate_data()
+        X, y = self._generate_data()
+
+        self.X_star = X
 
         # Choose randomly indexes without replacement (all indices are unique).
-        idx = np.random.choice(X_star.shape[0], self.n, replace=False)
+        idx = np.random.choice(X.shape[0], self.n + int(0.1*self.n), replace=False)
 
-        X_observed = X_star[idx]
-        u_observed = u_star[idx]
+        X_train = X[idx[:self.n]]
+        y_train = y[idx[:self.n]]
 
-        return X_observed, u_observed
+        X_test = X[idx[self.n:]]
+        y_test = y[idx[self.n:]]
+
+        return (X_train, y_train), (X_test, y_test)
 
 
     def _generate_data(self):
@@ -32,6 +37,8 @@ class Vortex2dDataset:
         assert len(x)*len(y) > 5*self.n
 
         X, Y = np.meshgrid(x, y)
+        self.X = X
+        self.Y = Y
 
         X_col = X.flatten()[:, None]
         Y_col = Y.flatten()[:, None]
@@ -39,6 +46,9 @@ class Vortex2dDataset:
 
         U = +np.sin(X) * np.cos(Y)
         V = -np.cos(X) * np.sin(Y)
+
+        self.U = U
+        self.V = V
 
         U_col = U.flatten()[:, None]
         V_col = V.flatten()[:, None]
