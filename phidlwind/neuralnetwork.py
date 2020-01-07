@@ -39,7 +39,7 @@ class DivFreeNeuralNetwork:
         ])
 
         self.model.compile(loss=self._compute_loss,
-                           optimizer='adam')
+                           optimizer='sgd')
 
     def _compute_loss(self, y_true, y_pred):
         u1_true = y_true[:, 0]
