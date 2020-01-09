@@ -1,7 +1,7 @@
 import time
 import warnings
 
-warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 import numpy as np
 import tensorflow as tf
@@ -10,6 +10,7 @@ import tensorflow.keras as keras
 
 class DivFreeNeuralNetwork:
     """Neural network that models divergence-free velocity field."""
+
     def __init__(self, X, y, gamma):
         # Scalar of the penalty term.
         self.gamma = gamma
@@ -34,17 +35,20 @@ class DivFreeNeuralNetwork:
         assert np.all(self.X_train <= +1.0)
 
         # TODO: Check how variables are initialized.
-        self.model = keras.models.Sequential([
-            keras.layers.InputLayer(input_shape=(2,)),
-            keras.layers.Dense(20, activation='tanh',
-                               kernel_initializer='glorot_uniform'),
-            keras.layers.Dense(10, activation='tanh',
-                               kernel_initializer='glorot_uniform'),
-            keras.layers.Dense(2)
-        ])
+        self.model = keras.models.Sequential(
+            [
+                keras.layers.InputLayer(input_shape=(2,)),
+                keras.layers.Dense(
+                    20, activation="tanh", kernel_initializer="glorot_uniform"
+                ),
+                keras.layers.Dense(
+                    10, activation="tanh", kernel_initializer="glorot_uniform"
+                ),
+                keras.layers.Dense(2),
+            ]
+        )
 
-        self.model.compile(loss=self._compute_loss,
-                           optimizer='sgd')
+        self.model.compile(loss=self._compute_loss, optimizer="sgd")
 
     def _compute_loss(self, y_true, y_pred):
         u1_true = y_true[:, 0]
@@ -86,10 +90,11 @@ class DivFreeNeuralNetwork:
         weights = []
         biases = []
         num_layers = len(layers)
-        for l in range(0, num_layers-1):
-            W = self.xavier_init(size=(layers[l], layers[l+1]))
-            b = tf.Variable(tf.zeros((1, layers[l+1]), dtype=tf.float32),
-                            dtype=tf.float32)
+        for l in range(0, num_layers - 1):
+            W = self.xavier_init(size=(layers[l], layers[l + 1]))
+            b = tf.Variable(
+                tf.zeros((1, layers[l + 1]), dtype=tf.float32), dtype=tf.float32
+            )
             weights.append(W)
             biases.append(b)
         return weights, biases
@@ -101,10 +106,9 @@ class DivFreeNeuralNetwork:
     def callback(self, loss, lambda_):
         if self._counter % 100 == 0:
             values = (loss, np.exp(lambda_))
-            print('Loss: %e, lambda: %.5f' % values)
+            print("Loss: %e, lambda: %.5f" % values)
 
         self._counter += 1
-
 
     def train(self, epochs):
         self.history = self.model.fit(self.X_train, self.y_train, epochs=epochs)

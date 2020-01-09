@@ -20,7 +20,8 @@ class NeuralNetworkWindfield(wf.Windfield):
         Measurements data.
 
     """
-    def __init__(self, calibration_data: GeoDataFrame, params: dict=None):
+
+    def __init__(self, calibration_data: GeoDataFrame, params: dict = None):
         x1 = tools.get_x(calibration_data).values
         x2 = tools.get_y(calibration_data).values
         u1 = tools.get_u(calibration_data).values
