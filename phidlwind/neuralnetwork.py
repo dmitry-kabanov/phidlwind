@@ -25,8 +25,13 @@ class DivFreeNeuralNetwork:
         self.X_train = X
         self.y_train = y
 
-        self.lb = np.min(self.x1), np.min(self.x2)
-        self.ub = np.max(self.x1), np.max(self.x2)
+        self.lb = np.array([np.min(self.x1), np.min(self.x2)])
+        self.ub = np.array([np.max(self.x1), np.max(self.x2)])
+
+        self.X_train = 2 * (X - self.lb) / (self.ub - self.lb) - 1.0
+
+        assert np.all(self.X_train >= -1.0)
+        assert np.all(self.X_train <= +1.0)
 
         # TODO: Check how variables are initialized.
         self.model = keras.models.Sequential([
@@ -50,7 +55,7 @@ class DivFreeNeuralNetwork:
         derivs = tf.gradients(y_pred, self.model.input)[0]
         du1_dx1 = derivs[:, 0]
         du2_dx2 = derivs[:, 1]
-        
+
         f = du1_dx1 + du2_dx2
 
         mse1 = tf.reduce_mean(tf.square(u1_true - u1_pred))
@@ -60,7 +65,6 @@ class DivFreeNeuralNetwork:
         loss = mse1 + mse2 + pnlt
 
         return loss
-
 
     def initialize_NN(self, layers):
         """Initialize feedforward neural network.
@@ -130,4 +134,5 @@ class DivFreeNeuralNetwork:
         # print('=== # of iterations ', self._counter)
 
     def predict(self, X_new):
-        return self.model.predict(X_new)
+        X_new_tilde = 2 * (X_new - self.lb) / (self.ub - self.lb) - 1.0
+        return self.model.predict(X_new_tilde)
