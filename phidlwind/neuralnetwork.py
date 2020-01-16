@@ -83,46 +83,6 @@ class DivFreeNeuralNetwork:
 
         return loss
 
-    def initialize_NN(self, layers):
-        """Initialize feedforward neural network.
-
-        Parameters
-        ----------
-        layers: list
-            The length of the list defines the depth of the network, while
-            each value in the list defines the width of the corresponding
-            layer, with the first and the last values defining the dimension
-            of the input and output layers, respectively.
-
-        """
-
-        # We require that neural network has two neurons in the output layer
-        # because we work with 2D velocity fields.
-        assert layers[-1] == 2
-
-        weights = []
-        biases = []
-        num_layers = len(layers)
-        for l in range(0, num_layers - 1):
-            W = self.xavier_init(size=(layers[l], layers[l + 1]))
-            b = tf.Variable(
-                tf.zeros((1, layers[l + 1]), dtype=tf.float32), dtype=tf.float32
-            )
-            weights.append(W)
-            biases.append(b)
-        return weights, biases
-
-    def net_u(self, x, y):
-        u = self.neural_net(tf.concat([x, y], 1), self.weights, self.biases)
-        return u
-
-    def callback(self, loss, lambda_):
-        if self._counter % 100 == 0:
-            values = (loss, np.exp(lambda_))
-            print("Loss: %e, lambda: %.5f" % values)
-
-        self._counter += 1
-
     def train(self, epochs):
         self.history = self.model.fit(self.X_train, self.y_train, epochs=epochs)
         # tf_dict = {self.x_tf: self.x, self.t_tf: self.t, self.u_tf: self.u}
