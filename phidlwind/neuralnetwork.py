@@ -1,11 +1,10 @@
-import time
 import warnings
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-import numpy as np
-import tensorflow as tf
-import tensorflow.keras as keras
+import numpy as np  # noqa: E402
+import tensorflow as tf  # noqa: E402
+import tensorflow.keras as keras  # noqa: E402
 
 
 class DivFreeNeuralNetwork:
@@ -38,7 +37,8 @@ class DivFreeNeuralNetwork:
         x1 = np.linspace(-1, 1, num=10 * N)
         x2 = np.linspace(-1, 1, num=10 * N)
         xx1, xx2 = np.meshgrid(x1, x2)
-        self._grid = np.hstack((xx1.flatten()[:, None], xx2.flatten()[:, None]))
+        xx1_col, xx2_col = xx1.flatten()[:, None], xx2.flatten()[:, None]
+        self._grid = np.hstack((xx1_col, xx2_col))
         self._grid = tf.convert_to_tensor(self._grid, dtype=tf.float32)
 
         # TODO: Check how variables are initialized.
@@ -84,7 +84,8 @@ class DivFreeNeuralNetwork:
         return loss
 
     def train(self, epochs):
-        self.history = self.model.fit(self.X_train, self.y_train, epochs=epochs)
+        model = self.model
+        self.history = model.fit(self.X_train, self.y_train, epochs=epochs)
         # tf_dict = {self.x_tf: self.x, self.t_tf: self.t, self.u_tf: self.u}
 
         # start_time = time.time()
