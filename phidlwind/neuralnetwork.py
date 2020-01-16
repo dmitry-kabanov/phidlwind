@@ -34,6 +34,13 @@ class DivFreeNeuralNetwork:
         assert np.all(self.X_train >= -1.0)
         assert np.all(self.X_train <= +1.0)
 
+        N = X.shape[0]
+        x1 = np.linspace(-1, 1, num=10 * N)
+        x2 = np.linspace(-1, 1, num=10 * N)
+        xx1, xx2 = np.meshgrid(x1, x2)
+        self._grid = np.hstack((xx1.flatten()[:, None], xx2.flatten()[:, None]))
+        self._grid = tf.convert_to_tensor(self._grid, dtype=tf.float32)
+
         # TODO: Check how variables are initialized.
         self.model = keras.models.Sequential(
             [
@@ -56,7 +63,13 @@ class DivFreeNeuralNetwork:
         u1_pred = y_pred[:, 0]
         u2_pred = y_pred[:, 1]
 
-        derivs = tf.gradients(y_pred, self.model.input)[0]
+        with tf.GradientTape() as t:
+            # Evaluate model on the constraint grid.
+            t.watch(self._grid)
+            result = self.model(self._grid)
+        derivs = t.gradient(result, self._grid)
+
+        # derivs = tf.gradients(y_pred, self.model.input)[0]
         du1_dx1 = derivs[:, 0]
         du2_dx2 = derivs[:, 1]
 
