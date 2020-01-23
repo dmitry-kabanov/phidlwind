@@ -6,6 +6,8 @@ import numpy as np  # noqa: E402
 import tensorflow as tf  # noqa: E402
 import tensorflow.keras as keras  # noqa: E402
 
+from typing import Dict, List  # noqa: E402
+
 
 class DivFreeNeuralNetwork:
     """Neural network that models divergence-free velocity field."""
@@ -40,6 +42,8 @@ class DivFreeNeuralNetwork:
         xx1_col, xx2_col = xx1.flatten()[:, None], xx2.flatten()[:, None]
         self._grid = np.hstack((xx1_col, xx2_col))
         self._grid = tf.convert_to_tensor(self._grid, dtype=tf.float32)
+
+        self.history: Dict[str, List] = {}
 
         # TODO: Check how variables are initialized.
         self.model = keras.models.Sequential(
