@@ -175,3 +175,21 @@ class DivFreeNeuralNetwork:
     def predict(self, X_new):
         X_new_tilde = 2 * (X_new - self.lb) / (self.ub - self.lb) - 1.0
         return self.model.predict(X_new_tilde)
+
+    def get_physical_constraint(self):
+        pnlt_pts = self.X_pnlt
+        with tf.GradientTape() as t:
+            # Evaluate model on the constraint grid.
+            t.watch(pnlt_pts)
+            result = self.model(pnlt_pts)
+        derivs = t.gradient(result, pnlt_pts)
+
+        # derivs = tf.gradients(y_pred, self.model.input)[0]
+        du1_dx1 = derivs[:, 0]
+        du2_dx2 = derivs[:, 1]
+
+        f = du1_dx1 + du2_dx2
+
+        f_result = f.numpy().reshape(self._pnlt_grid_size)
+
+        return f_result
