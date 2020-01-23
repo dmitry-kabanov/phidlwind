@@ -90,30 +90,6 @@ class DivFreeNeuralNetwork:
     def train(self, epochs):
         model = self.model
         self.history = model.fit(self.X_train, self.y_train, epochs=epochs)
-        # tf_dict = {self.x_tf: self.x, self.t_tf: self.t, self.u_tf: self.u}
-
-        # start_time = time.time()
-        # for it in range(nIter):
-        #     self.sess.run(self.train_op_Adam, tf_dict)
-
-        #     # Print
-        #     if it % 100 == 0:
-        #         elapsed = time.time() - start_time
-        #         loss_value = self.sess.run(self.loss, tf_dict)
-        #         lambda_value = self.sess.run(self.lambda_)
-        #         print('It: %d, Loss: %.3e, Lambda: %.3f, Time: %.2f' %
-        #               (it, loss_value, lambda_value, elapsed))
-        #         start_time = time.time()
-
-        # fetches = [self.loss, self.lambda_]
-        # self.optimizer.minimize(self.sess,
-        #                         feed_dict=tf_dict,
-        #                         fetches=fetches,
-        #                         loss_callback=self.callback)
-        # loss_final = self.sess.run(self.loss, feed_dict=tf_dict)
-        # lambda_final = self.get_pde_params()[0]
-        # print('=== Loss: %e, lambda: %.5f' % (loss_final, lambda_final))
-        # print('=== # of iterations ', self._counter)
 
     def predict(self, X_new):
         X_new_tilde = 2 * (X_new - self.lb) / (self.ub - self.lb) - 1.0
